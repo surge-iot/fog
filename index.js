@@ -49,7 +49,7 @@ localMqttClient.on('message', function (topic, message) {
             if (msgStr.split(" ")[1] === gatewaySerial) {
                 return;
             }
-            console.log(msgStr);
+            // console.log(msgStr);
             // Extract topic from syslog message
             const t = _.last(msgStr.split(" "));
             deviceSerial = getSerialFromTopic(t);
@@ -84,7 +84,7 @@ function getSerialFromTopic(topic) {
     return _.last(_.last(topic.split(" ")).split('/'))
 }
 function registerDevice(deviceSerial, deviceType, topic) {
-    // If this producer has already been registered, ignore it.
+    // If this device has already been registered, ignore it.
     if (devices[deviceSerial]) {
         return devices[deviceSerial];
     }
@@ -93,7 +93,7 @@ function registerDevice(deviceSerial, deviceType, topic) {
         topic: topic
     }
 
-    // Register the produce with ARP server
+    // Register the device with ARP server
     axios.post(`${arpRoot}device/${deviceSerial}/update-gateway/${gatewaySerial}`, {})
         .then(function (response) {
             console.log(`${deviceSerial} registered with gateway`);

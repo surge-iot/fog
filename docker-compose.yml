@@ -19,6 +19,14 @@ services:
     volumes:
       - node_red_data:/data
 
+  oneboard-gateway:
+    container_name: oneboard-gateway
+    build:
+      context: .
+    image: oneboard-gateway
+    environment: 
+      - LOCAL_BROKER_URL=mqtt://mosquitto
+
 volumes:
   node_red_data:
   mosquitto_data:
