@@ -3,6 +3,8 @@ const mqtt = require('mqtt');
 const _ = require('lodash');
 const axios = require('axios');
 
+require('./fogmr-executor')();
+
 const gatewaySerial = process.env.GATEWAY_SERIAL || 'oneboard-gateway-000';
 const arpRoot = process.env.ARP_ROOT || 'http://localhost:3000/api/arp/'
 
