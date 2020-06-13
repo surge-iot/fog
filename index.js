@@ -8,11 +8,11 @@ const arpRoot = process.env.ARP_ROOT || 'http://localhost:3000/api/arp/'
 
 // Connect to local and remote MQTT brokers
 const localMqttClient = mqtt.connect(process.env.LOCAL_BROKER_URL || 'mqtt://localhost', {
-    clientId: gatewaySerial,
+    clientId: `GATEWAY/${gatewaySerial}`,
     clean: false
 });
 const remoteMqttClient = mqtt.connect(process.env.REMOTE_BROKER_URL || 'mqtt://localhost', {
-    clientId: gatewaySerial,
+    clientId: `GATEWAY/${gatewaySerial}`,
     clean: true
 });
 
@@ -44,22 +44,28 @@ localMqttClient.on('message', function (topic, message) {
     switch (topic) {
         case '$SYS/broker/log/M/subscribe':
             // New device subscribed to local MQTT. 
-            // Add to consumers list
+            // Add to consumers list and subscribe to the same topic with remote broker
+            // for forwarding
             const msgStr = message.toString();
-            if (msgStr.split(" ")[1] === gatewaySerial) {
+            if (isGatewaySubscription(msgStr.split(" ")[1])) {
                 return;
             }
-            // console.log(msgStr);
+            
             // Extract topic from syslog message
             const t = _.last(msgStr.split(" "));
             deviceSerial = getSerialFromTopic(t);
             registerDevice(deviceSerial, "consumer");
+            // Subscribe to the same topic with remote broker
             remoteMqttClient.subscribe(t, { qos: 2 }, function(){
                 console.log("Subscribed to remote broker for "+t);
             });
             break;
         default:
             // Any other message means a device published some message
+            // Unless it was intended for the gateway, in which case we ignore it
+            if(isGatewaySubscription(topic)){
+                return;
+            }
             // Extract the device serial from topic and save as a producer
             deviceSerial = getSerialFromTopic(topic);
             var device = registerDevice(deviceSerial, "producer");
@@ -77,11 +83,17 @@ localMqttClient.on('message', function (topic, message) {
 
 // Anything received from remote broker must be forwarded as is
 remoteMqttClient.on('message', function (topic, message) {
+    if(isGatewaySubscription(topic)){
+        return;
+    }
     localMqttClient.publish(topic, message);
 })
 
 function getSerialFromTopic(topic) {
     return _.last(_.last(topic.split(" ")).split('/'))
+}
+function isGatewaySubscription(msgStr){
+    return msgStr.split('/')[0] === 'GATEWAY';
 }
 function registerDevice(deviceSerial, deviceType, topic) {
     // If this device has already been registered, ignore it.
