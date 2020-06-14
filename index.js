@@ -49,7 +49,8 @@ localMqttClient.on('message', function (topic, message) {
             // Add to consumers list and subscribe to the same topic with remote broker
             // for forwarding
             const msgStr = message.toString();
-            if (isGatewaySubscription(msgStr.split(" ")[1])) {
+            // Check whether either the subscribed topic or client id has GATEWAY in it
+            if (isGatewaySubscription(msgStr.split(" ")[1]) || isGatewaySubscription(_.last(msgStr.split(" ")))) {
                 return;
             }
             

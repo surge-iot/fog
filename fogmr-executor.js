@@ -2,7 +2,7 @@
 const mqtt = require('mqtt');
 const { Docker } = require('node-docker-api');
 
-const dockerImagePrefix = process.env.DOCKER_IMAGE_PREFIX || "";
+const dockerHubUsername = process.env.DOCKER_HUB_USERNAME || "";
 const docker = new Docker({ socketPath: '/var/run/docker.sock' });
 const promisifyStream = (stream) => new Promise((resolve, reject) => {
     stream.on('data', (d) => console.log(d.toString()))
@@ -36,20 +36,14 @@ fogmrMqttClient.on('message', async function (topic, message) {
     }
 
     const functionName = topic.split('/')[3]; // GATEWAY/<gateway-serial>/FOGMR/<function-name>/<function-instance-id>/<map or reduce>/<map-target>
-    const imageName = dockerImagePrefix + functionName;
+    const imageName = `${dockerHubUsername}/${functionName}`;
+    console.log("Received FOGMR trigger for "+imageName);
     // List
     let containers = await docker.container.list();
-    console.log(containers);
-    containers = containers.filter(container => (container.data.Image === functionName));
+    containers = containers.filter(container => (container.data.Image === imageName));
     if (containers.length == 0) {
+        console.log(`Container for ${imageName} is not running. Let's deploy it B)`);
         // No running containers for our FOGMR function. Let's deploy it B)
-        // await docker.image.create({}, { fromImage: imageName, tag: 'latest' })
-        // const image = await docker.image.get(imageName).status();
-        // console.log(image.status());
-        // await docker.container.create({
-        //     Image: imageName,
-        //     name: `FOGMR-${functionName}`
-        // })
         docker.image.create({}, { fromImage: imageName, tag: 'latest' })
             .then(stream => promisifyStream(stream))
             .then(() => docker.image.get(imageName).status())
@@ -57,13 +51,19 @@ fogmrMqttClient.on('message', async function (topic, message) {
                 // Image pulled successfully
                 docker.container.create({
                     Image: image.id,
-                    name: `FOGMR-${functionName}`
+                    name: `FOGMR-${functionName}`,
+                    HostConfig:{
+                        NetworkMode:"container:oneboard-mosquitto"
+                    }
                 })
                     .then(container => container.start())
                     .then(console.log(`Started container for ${functionName}`))
                     .catch(error => console.log(error));
             })
             .catch(error => console.log("error", error))
+    }
+    else{
+        console.log("Container is already running. Ciao!")
     }
 })
 
