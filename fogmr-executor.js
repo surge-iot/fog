@@ -54,7 +54,11 @@ fogmrMqttClient.on('message', async function (topic, message) {
                     name: `FOGMR-${functionName}`,
                     HostConfig:{
                         NetworkMode:"container:oneboard-mosquitto"
-                    }
+                    },
+                    Env:[
+                        `REMOTE_BROKER_URL=${process.env.REMOTE_BROKER_URL}`,
+                        `GATEWAY_SERIAL=${gatewaySerial}`
+                    ]
                 })
                     .then(container => container.start())
                     .then(console.log(`Started container for ${functionName}`))

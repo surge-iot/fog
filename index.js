@@ -96,7 +96,7 @@ function getSerialFromTopic(topic) {
     return _.last(_.last(topic.split(" ")).split('/'))
 }
 function isGatewaySubscription(msgStr){
-    return msgStr.split('/')[0] === 'GATEWAY';
+    return msgStr.split('/')[0] === 'GATEWAY' || msgStr.split('/')[0] === 'FOGMR';
 }
 function registerDevice(deviceSerial, deviceType, topic) {
     // If this device has already been registered, ignore it.
