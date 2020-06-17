@@ -14,6 +14,7 @@ ENV NODE_ENV=production \
 	REMOTE_BROKER_URL=mqtt://test.mosquitto.org \
     GATEWAY_SERIAL=oneboard-gateway-000 \
     ARP_ROOT=http://localhost:3000/api/arp/ \
-    DOCKER_HUB_USERNAME=zgod
+    DOCKER_HUB_USERNAME=zgod \
+    EXCLUDED_TOPICS=CAMERA/001,CAMERA/002
 
 CMD ["npm", "run", "start"]

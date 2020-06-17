@@ -7,6 +7,7 @@ require('./fogmr-executor')();
 
 const gatewaySerial = process.env.GATEWAY_SERIAL || 'oneboard-gateway-000';
 const arpRoot = process.env.ARP_ROOT || 'http://localhost:3000/api/arp/'
+const excludeTopics = process.env.EXCLUDE_TOPICS.split(",");
 
 // Connect to local and remote MQTT brokers
 const localMqttClient = mqtt.connect(process.env.LOCAL_BROKER_URL || 'mqtt://localhost', {
@@ -42,37 +43,39 @@ remoteMqttClient.on('connect', function () {
 localMqttClient.on('message', function (topic, message) {
     // message is Buffer
     let deviceSerial;
-
     switch (topic) {
         case '$SYS/broker/log/M/subscribe':
+            console.log(message.toString())
             // New device subscribed to local MQTT. 
             // Add to consumers list and subscribe to the same topic with remote broker
             // for forwarding
             const msgStr = message.toString();
             // Check whether either the subscribed topic or client id has GATEWAY in it
-            if (isGatewaySubscription(msgStr.split(" ")[1]) || isGatewaySubscription(_.last(msgStr.split(" ")))) {
+            const t = _.last(msgStr.split(" ")); // Subscribed topic
+            if (isGatewaySubscription(msgStr.split(" ")[1]) ||
+                isGatewaySubscription(t) ||
+                isExcluded(t)) {
                 return;
             }
-            
-            // Extract topic from syslog message
-            const t = _.last(msgStr.split(" "));
+
+            // Extract device serial from subscribed topic
             deviceSerial = getSerialFromTopic(t);
             registerDevice(deviceSerial, "consumer");
             // Subscribe to the same topic with remote broker
-            remoteMqttClient.subscribe(t, { qos: 2 }, function(){
-                console.log("Subscribed to remote broker for "+t);
+            remoteMqttClient.subscribe(t, { qos: 2 }, function () {
+                console.log("Subscribed to remote broker for " + t);
             });
             break;
         default:
             // Any other message means a device published some message
             // Unless it was intended for the gateway, in which case we ignore it
-            if(isGatewaySubscription(topic)){
+            if (isGatewaySubscription(topic) || isExcluded(topic)) {
                 return;
             }
             // Extract the device serial from topic and save as a producer
             deviceSerial = getSerialFromTopic(topic);
             var device = registerDevice(deviceSerial, "producer");
-            if(device.type === "consumer"){
+            if (device.type === "consumer") {
                 // This happens when a consumer message from remote broker is forwarded by gateway to local broker
                 // leading to an infinite loop of messages betweek remote broker and local broker
                 break;
@@ -86,7 +89,7 @@ localMqttClient.on('message', function (topic, message) {
 
 // Anything received from remote broker must be forwarded as is
 remoteMqttClient.on('message', function (topic, message) {
-    if(isGatewaySubscription(topic)){
+    if (isGatewaySubscription(topic)) {
         return;
     }
     localMqttClient.publish(topic, message);
@@ -95,7 +98,14 @@ remoteMqttClient.on('message', function (topic, message) {
 function getSerialFromTopic(topic) {
     return _.last(_.last(topic.split(" ")).split('/'))
 }
-function isGatewaySubscription(msgStr){
+function isExcluded(topic) {
+    if (excludeTopics.includes(topic)) {
+        console.log(`${topic} is excluded`)
+        return true;
+    }
+    return false;
+}
+function isGatewaySubscription(msgStr) {
     return msgStr.split('/')[0] === 'GATEWAY' || msgStr.split('/')[0] === 'FOGMR';
 }
 function registerDevice(deviceSerial, deviceType, topic) {

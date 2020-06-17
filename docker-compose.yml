@@ -26,25 +26,25 @@ services:
     networks:
       - oneboard-net
 
-  oneboard-gateway:
-    container_name: oneboard-gateway
-    build:
-      context: .
-    image: oneboard-gateway
-    environment: 
-      - LOCAL_BROKER_URL=mqtt://mosquitto
-      - REMOTE_BROKER_URL=mqtt://192.168.1.103
-      - ARP_ROOT=http://192.168.1.103:3000/api/arp/
-      - GATEWAY_SERIAL=gateway_k_seil
-      - DOCKER_HUB_USERNAME=zgod
-    volumes:
-      - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
-    depends_on:
-      - mosquitto
-    networks:
-      - oneboard-net
+  # oneboard-gateway:
+  #   container_name: oneboard-gateway
+  #   build:
+  #     context: .
+  #   image: oneboard-gateway
+  #   environment: 
+  #     - LOCAL_BROKER_URL=mqtt://mosquitto
+  #     - REMOTE_BROKER_URL=mqtt://192.168.1.103
+  #     - ARP_ROOT=http://192.168.1.103:3000/api/arp/
+  #     - GATEWAY_SERIAL=gateway_k_seil
+  #     - DOCKER_HUB_USERNAME=zgod
+  #   volumes:
+  #     - type: bind
+  #       source: /var/run/docker.sock
+  #       target: /var/run/docker.sock
+  #   depends_on:
+  #     - mosquitto
+  #   networks:
+  #     - oneboard-net
 
 volumes:
   node_red_data:
