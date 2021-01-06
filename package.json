@@ -11,7 +11,7 @@
   "author": "Shinjan Mitra",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "dotenv": "^8.2.0",
     "lodash": "^4.17.15",
     "mqtt": "^4.1.0",
